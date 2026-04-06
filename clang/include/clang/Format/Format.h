@@ -4955,6 +4955,22 @@ struct FormatStyle {
   /// \version 7
   bool SpaceBeforeCtorInitializerColon;
 
+  /// If ``false``, spaces will be removed after constructor initializer colon.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
+  /// \endcode
+  /// \version 22
+  bool SpaceAfterCtorInitializerColon;
+
+  /// If ``false``, spaces will be removed after constructor initializer comma.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
+  /// \endcode
+  /// \version 22
+  bool SpaceAfterCtorInitializerComma;
+
   /// If ``false``, spaces will be removed before inheritance colon.
   /// \code
   ///    true:                                  false:
@@ -5909,6 +5925,10 @@ struct FormatStyle {
            SpaceBeforeCpp11BracedList == R.SpaceBeforeCpp11BracedList &&
            SpaceBeforeCtorInitializerColon ==
                R.SpaceBeforeCtorInitializerColon &&
+           SpaceAfterCtorInitializerColon ==
+               R.SpaceAfterCtorInitializerColon &&
+           SpaceAfterCtorInitializerComma ==
+               R.SpaceAfterCtorInitializerComma &&
            SpaceBeforeInheritanceColon == R.SpaceBeforeInheritanceColon &&
            SpaceBeforeJsonColon == R.SpaceBeforeJsonColon &&
            SpaceBeforeParens == R.SpaceBeforeParens &&

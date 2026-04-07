@@ -6220,6 +6220,11 @@ bool TokenAnnotator::mustBreakBefore(AnnotatedLine &Line,
 bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
                                     const FormatToken &Right) const {
   const FormatToken &Left = *Right.Previous;
+  if (Style.EmptyConstructorBodyOnNewLine && Right.is(tok::r_brace) &&
+      Left.is(tok::l_brace) && Left.Previous &&
+      Left.Previous->is(tok::r_brace)) {
+    return false;
+  }
   // Language-specific stuff.
   if (Style.isCSharp()) {
     if (Left.isOneOf(TT_CSharpNamedArgumentColon, TT_AttributeColon) ||

@@ -32,6 +32,19 @@ bool isRecordLBrace(const FormatToken &Tok) {
                      TT_StructLBrace, TT_UnionLBrace);
 }
 
+static bool hasCtorInitializerBefore(const FormatToken *Tok) {
+  for (; Tok; Tok = Tok->Previous) {
+    if (Tok->is(tok::semi))
+      break;
+    if (Tok->isOneOf(TT_CtorInitializerColon, TT_CtorInitializerComma) ||
+        (Tok->is(tok::colon) && Tok->Previous &&
+         Tok->Previous->is(tok::r_paren))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// Tracks the indent level of \c AnnotatedLines across levels.
 ///
 /// \c nextLine must be called for each \c AnnotatedLine, after which \c
@@ -263,8 +276,7 @@ private:
                 ? 0
                 : Limit - TheLine->Last->TotalLength;
 
-    if (TheLine->Last->is(TT_FunctionLBrace) &&
-        TheLine->First == TheLine->Last) {
+    if (TheLine->Last->is(TT_FunctionLBrace) && TheLine->First == TheLine->Last) {
       const bool EmptyFunctionBody = NextLine.First->is(tok::r_brace);
       if ((EmptyFunctionBody && !Style.BraceWrapping.SplitEmptyFunction) ||
           (!EmptyFunctionBody &&
@@ -287,7 +299,6 @@ private:
     if (PreviousLine && TheLine->Last->is(tok::l_brace) &&
         TheLine->First == TheLine->Last) {
       const bool EmptyBlock = NextLine.First->is(tok::r_brace);
-
       const FormatToken *Tok = PreviousLine->getFirstNonComment();
 
       if (Tok && Tok->getNamespaceToken()) {
@@ -435,9 +446,15 @@ private:
     // instead of TheLine->Last.
 
     // Try to merge a function block with left brace unwrapped.
-    if (LastNonComment->is(TT_FunctionLBrace) &&
+    const bool ForceCtorEmptyBodyMerge =
+        Style.EmptyConstructorBodyOnNewLine &&
+        LastNonComment->is(tok::l_brace) &&
+        hasCtorInitializerBefore(LastNonComment->Previous);
+    if ((LastNonComment->is(TT_FunctionLBrace) || ForceCtorEmptyBodyMerge) &&
         TheLine->First != LastNonComment) {
-      return MergeShortFunctions ? tryMergeSimpleBlock(I, E, Limit) : 0;
+      return (MergeShortFunctions || ForceCtorEmptyBodyMerge)
+                 ? tryMergeSimpleBlock(I, E, Limit)
+                 : 0;
     }
 
     // Try to merge a control statement block with left brace unwrapped.
@@ -948,7 +965,13 @@ private:
         return 0;
       }
       FormatToken *Tok = I[1]->First;
-      auto ShouldMerge = [Tok]() {
+      const bool ForceCtorEmptyBodyMerge =
+          Style.EmptyConstructorBodyOnNewLine && Tok->is(tok::r_brace) &&
+          Line.Last->isNot(BK_BracedInit) &&
+          hasCtorInitializerBefore(Line.Last->Previous);
+      auto ShouldMerge = [Tok, ForceCtorEmptyBodyMerge]() {
+        if (ForceCtorEmptyBodyMerge)
+          return true;
         if (Tok->isNot(tok::r_brace) || Tok->MustBreakBefore)
           return false;
         const FormatToken *Next = Tok->getNextNonComment();
@@ -956,6 +979,8 @@ private:
       };
 
       if (ShouldMerge()) {
+        if (ForceCtorEmptyBodyMerge)
+          Tok->MustBreakBefore = false;
         // We merge empty blocks even if the line exceeds the column limit.
         Tok->SpacesRequiredBefore =
             Style.SpaceInEmptyBraces != FormatStyle::SIEB_Never ||

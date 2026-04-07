@@ -1402,6 +1402,8 @@ template <> struct MappingTraits<FormatStyle> {
                    Style.SpaceAfterCtorInitializerColon);
     IO.mapOptional("SpaceAfterCtorInitializerComma",
                    Style.SpaceAfterCtorInitializerComma);
+    IO.mapOptional("EmptyConstructorBodyOnNewLine",
+                   Style.EmptyConstructorBodyOnNewLine);
     IO.mapOptional("SpaceBeforeEnumUnderlyingTypeColon",
                    Style.SpaceBeforeEnumUnderlyingTypeColon);
     IO.mapOptional("SpaceBeforeInheritanceColon",
@@ -1926,6 +1928,7 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.SpaceBeforeCtorInitializerColon = true;
   LLVMStyle.SpaceAfterCtorInitializerColon = true;
   LLVMStyle.SpaceAfterCtorInitializerComma = true;
+  LLVMStyle.EmptyConstructorBodyOnNewLine = false;
   LLVMStyle.SpaceBeforeEnumUnderlyingTypeColon = true;
   LLVMStyle.SpaceBeforeInheritanceColon = true;
   LLVMStyle.SpaceBeforeJsonColon = false;

@@ -44,6 +44,19 @@ static bool shouldUnindentNextOperator(const FormatToken &Tok) {
                       Previous->isOneOf(tok::kw_return, TT_RequiresClause));
 }
 
+static bool hasCtorInitializerBefore(const FormatToken *Tok) {
+  for (; Tok; Tok = Tok->Previous) {
+    if (Tok->is(tok::semi))
+      break;
+    if (Tok->isOneOf(TT_CtorInitializerColon, TT_CtorInitializerComma) ||
+        (Tok->is(tok::colon) && Tok->Previous &&
+         Tok->Previous->is(tok::r_paren))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Returns the length of everything up to the first possible line break after
 // the ), ], } or > matching \c Tok.
 static unsigned getLengthToMatchingParen(const FormatToken &Tok,
@@ -1379,7 +1392,13 @@ unsigned ContinuationIndenter::addTokenOnNewLine(LineState &State,
   if (PreviousNonComment &&
       (PreviousNonComment->isOneOf(tok::l_brace, TT_ArrayInitializerLSquare) ||
        opensProtoMessageField(*PreviousNonComment, Style))) {
-    CurrentState.BreakBeforeClosingBrace = true;
+    const bool IsEmptyCtorBodyAfterInitializer =
+        Style.EmptyConstructorBodyOnNewLine && Current.is(tok::r_brace) &&
+        PreviousNonComment->is(tok::l_brace) && PreviousNonComment->Previous &&
+        PreviousNonComment->Previous->is(tok::r_brace) &&
+        PreviousNonComment->isNot(BK_BracedInit) &&
+        hasCtorInitializerBefore(PreviousNonComment->Previous);
+    CurrentState.BreakBeforeClosingBrace = !IsEmptyCtorBodyAfterInitializer;
   }
 
   if (PreviousNonComment && PreviousNonComment->is(tok::l_paren)) {

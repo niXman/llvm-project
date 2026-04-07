@@ -5147,6 +5147,20 @@ struct FormatStyle {
   /// \endcode
   /// \version 22
   bool EmptyConstructorBodyOnNewLine;
+
+  /// If ``true``, place constructor body opening brace on a new line when the
+  /// constructor has an initializer list.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo()                             Foo::Foo()
+  ///        : a(1), b(2)               vs.        : a(1), b(2) {
+  ///    {                                        }
+  ///      body();                             // ...
+  ///    }                                    }
+  /// \endcode
+  /// \version 22
+  bool CtorBodyOnNewLineAfterInitList;
+
   /// If ``false``, spaces will be removed before enum underlying type colon.
   /// \code
   ///    true:                                  false:
@@ -6116,6 +6130,8 @@ struct FormatStyle {
                R.SpaceAfterCtorInitializerComma &&
            EmptyConstructorBodyOnNewLine ==
                R.EmptyConstructorBodyOnNewLine &&
+           CtorBodyOnNewLineAfterInitList ==
+               R.CtorBodyOnNewLineAfterInitList &&
            SpaceBeforeInheritanceColon == R.SpaceBeforeInheritanceColon &&
            SpaceBeforeJsonColon == R.SpaceBeforeJsonColon &&
            SpaceBeforeParens == R.SpaceBeforeParens &&

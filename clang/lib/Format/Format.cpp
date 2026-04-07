@@ -1398,12 +1398,14 @@ template <> struct MappingTraits<FormatStyle> {
                    Style.SpaceBeforeCpp11BracedList);
     IO.mapOptional("SpaceBeforeCtorInitializerColon",
                    Style.SpaceBeforeCtorInitializerColon);
+    IO.mapOptional("EmptyConstructorBodyOnNewLine",
+                   Style.EmptyConstructorBodyOnNewLine);
     IO.mapOptional("SpaceAfterCtorInitializerColon",
                    Style.SpaceAfterCtorInitializerColon);
     IO.mapOptional("SpaceAfterCtorInitializerComma",
                    Style.SpaceAfterCtorInitializerComma);
-    IO.mapOptional("EmptyConstructorBodyOnNewLine",
-                   Style.EmptyConstructorBodyOnNewLine);
+    IO.mapOptional("CtorBodyOnNewLineAfterInitList",
+                   Style.CtorBodyOnNewLineAfterInitList);
     IO.mapOptional("SpaceBeforeEnumUnderlyingTypeColon",
                    Style.SpaceBeforeEnumUnderlyingTypeColon);
     IO.mapOptional("SpaceBeforeInheritanceColon",
@@ -1926,9 +1928,10 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.SpaceBeforeCaseColon = false;
   LLVMStyle.SpaceBeforeCpp11BracedList = false;
   LLVMStyle.SpaceBeforeCtorInitializerColon = true;
+  LLVMStyle.EmptyConstructorBodyOnNewLine = false;
   LLVMStyle.SpaceAfterCtorInitializerColon = true;
   LLVMStyle.SpaceAfterCtorInitializerComma = true;
-  LLVMStyle.EmptyConstructorBodyOnNewLine = false;
+  LLVMStyle.CtorBodyOnNewLineAfterInitList = false;
   LLVMStyle.SpaceBeforeEnumUnderlyingTypeColon = true;
   LLVMStyle.SpaceBeforeInheritanceColon = true;
   LLVMStyle.SpaceBeforeJsonColon = false;

@@ -5730,6 +5730,34 @@ static bool isAllmanLambdaBrace(const FormatToken &Tok) {
          Tok.isNoneOf(TT_ObjCBlockLBrace, TT_DictLiteral);
 }
 
+static bool lineContainsCtorInitializerList(const AnnotatedLine &Line) {
+  for (const auto *Tok = Line.First; Tok; Tok = Tok->Next) {
+    if (Tok->isOneOf(TT_CtorInitializerColon, TT_CtorInitializerComma,
+                     tok::colon))
+      return true;
+  }
+  return false;
+}
+
+static bool isEmptyBlockLBrace(const FormatToken &LBrace) {
+  if (LBrace.isNot(tok::l_brace) || !LBrace.MatchingParen)
+    return false;
+  const auto *Tok = LBrace.Next;
+  while (Tok && Tok->is(tok::comment))
+    Tok = Tok->Next;
+  return Tok && Tok == LBrace.MatchingParen && Tok->is(tok::r_brace);
+}
+
+static bool lineContainsCtorDeclName(const AnnotatedLine &Line) {
+  for (const auto *Tok = Line.First; Tok; Tok = Tok->Next) {
+    if (Tok->is(TT_CtorDtorDeclName)) {
+      if (!Tok->Previous || Tok->Previous->isNot(tok::tilde))
+        return true;
+    }
+  }
+  return false;
+}
+
 bool TokenAnnotator::mustBreakBefore(AnnotatedLine &Line,
                                      const FormatToken &Right) const {
   if (Right.NewlinesBefore > 1 && Style.MaxEmptyLinesToKeep > 0 &&
@@ -5755,6 +5783,17 @@ bool TokenAnnotator::mustBreakBefore(AnnotatedLine &Line,
 
   const auto *BeforeLeft = Left.Previous;
   const auto *AfterRight = Right.Next;
+
+  if (Style.EmptyConstructorBodyOnNewLine && Right.is(TT_FunctionLBrace) &&
+      lineContainsCtorDeclName(Line) && lineContainsCtorInitializerList(Line) &&
+      isEmptyBlockLBrace(Right)) {
+    return true;
+  }
+  if (Style.CtorBodyOnNewLineAfterInitList && Right.is(TT_FunctionLBrace) &&
+      lineContainsCtorDeclName(Line) && lineContainsCtorInitializerList(Line) &&
+      !isEmptyBlockLBrace(Right)) {
+    return true;
+  }
 
   if (Style.isCSharp()) {
     if (Left.is(TT_FatArrow) && Right.is(tok::l_brace) &&
@@ -6220,11 +6259,6 @@ bool TokenAnnotator::mustBreakBefore(AnnotatedLine &Line,
 bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
                                     const FormatToken &Right) const {
   const FormatToken &Left = *Right.Previous;
-  if (Style.EmptyConstructorBodyOnNewLine && Right.is(tok::r_brace) &&
-      Left.is(tok::l_brace) && Left.Previous &&
-      Left.Previous->is(tok::r_brace)) {
-    return false;
-  }
   // Language-specific stuff.
   if (Style.isCSharp()) {
     if (Left.isOneOf(TT_CSharpNamedArgumentColon, TT_AttributeColon) ||

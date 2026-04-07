@@ -44,15 +44,48 @@ static bool shouldUnindentNextOperator(const FormatToken &Tok) {
                       Previous->isOneOf(tok::kw_return, TT_RequiresClause));
 }
 
-static bool hasCtorInitializerBefore(const FormatToken *Tok) {
-  for (; Tok; Tok = Tok->Previous) {
+static bool isEmptyCtorBodyAfterInitializer(const FormatToken &Current) {
+  if (Current.isNot(tok::l_brace) || Current.is(BK_BracedInit)) {
+    return false;
+  }
+  const FormatToken *BodyTok = Current.Next;
+  while (BodyTok && BodyTok->is(tok::comment))
+    BodyTok = BodyTok->Next;
+  if (!BodyTok || BodyTok->isNot(tok::r_brace))
+    return false;
+
+  bool SeenCtorName = false;
+  bool SeenCtorInitializer = false;
+  for (const FormatToken *Tok = Current.Previous; Tok; Tok = Tok->Previous) {
     if (Tok->is(tok::semi))
       break;
+    if (Tok->is(TT_CtorDtorDeclName) &&
+        (!Tok->Previous || Tok->Previous->isNot(tok::tilde))) {
+      SeenCtorName = true;
+    }
     if (Tok->isOneOf(TT_CtorInitializerColon, TT_CtorInitializerComma) ||
         (Tok->is(tok::colon) && Tok->Previous &&
          Tok->Previous->is(tok::r_paren))) {
-      return true;
+      SeenCtorInitializer = true;
     }
+  }
+  return SeenCtorName && SeenCtorInitializer;
+}
+
+static bool isEmptyCtorBodyClosingBrace(const FormatToken &Current) {
+  if (Current.isNot(tok::r_brace) || !Current.Previous)
+    return false;
+  const FormatToken &LBrace = *Current.Previous;
+  if (LBrace.isNot(tok::l_brace) || LBrace.is(BK_BracedInit) ||
+      !LBrace.Previous || LBrace.Previous->isNot(tok::r_brace) ||
+      LBrace.Previous->isNot(BK_BracedInit)) {
+    return false;
+  }
+  for (const auto *Tok = LBrace.Previous; Tok; Tok = Tok->Previous) {
+    if (Tok->is(tok::semi))
+      break;
+    if (Tok->isOneOf(TT_CtorInitializerColon, TT_CtorInitializerComma))
+      return true;
   }
   return false;
 }
@@ -385,6 +418,10 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
   const FormatToken &Current = *State.NextToken;
   const FormatToken &Previous = *Current.Previous;
   const auto &CurrentState = State.Stack.back();
+  if (Style.EmptyConstructorBodyOnNewLine &&
+      isEmptyCtorBodyClosingBrace(Current)) {
+    return false;
+  }
   assert(&Previous == Current.Previous);
   if (!Current.CanBreakBefore && !(CurrentState.BreakBeforeClosingBrace &&
                                    Current.closesBlockOrBlockTypeList(Style))) {
@@ -396,6 +433,16 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
       Previous.isNot(TT_DictLiteral) && Previous.is(BK_BracedInit) &&
       Previous.Previous &&
       Previous.Previous->isOneOf(tok::l_brace, tok::l_paren, tok::comma)) {
+    return false;
+  }
+  if (Style.EmptyConstructorBodyOnNewLine && Current.is(tok::r_brace) &&
+      Previous.is(TT_FunctionLBrace) && Previous.Previous &&
+      Previous.Previous->is(tok::r_paren)) {
+    return false;
+  }
+  if (Style.EmptyConstructorBodyOnNewLine && Current.is(tok::r_brace) &&
+      Previous.is(tok::l_brace) && Previous.is(BK_Block) &&
+      Previous.Previous && Previous.Previous->is(tok::r_paren)) {
     return false;
   }
   // This prevents breaks like:
@@ -485,10 +532,20 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
   const FormatToken &Current = *State.NextToken;
   const FormatToken &Previous = *Current.Previous;
   const auto &CurrentState = State.Stack.back();
+  if (Style.EmptyConstructorBodyOnNewLine && Current.is(tok::r_brace) &&
+      Previous.is(tok::l_brace) && Previous.NewlinesBefore > 0 &&
+      Previous.Previous && Previous.Previous->is(tok::r_brace) &&
+      Previous.Previous->is(BK_BracedInit)) {
+    return false;
+  }
   if (Style.BraceWrapping.BeforeLambdaBody && Current.CanBreakBefore &&
       Current.is(TT_LambdaLBrace) && Previous.isNot(TT_LineComment)) {
     auto LambdaBodyLength = getLengthToMatchingParen(Current, State.Stack);
     return LambdaBodyLength > getColumnLimit(State);
+  }
+  if (Style.EmptyConstructorBodyOnNewLine &&
+      isEmptyCtorBodyAfterInitializer(Current)) {
+    return true;
   }
   if (Current.MustBreakBefore ||
       (Current.is(TT_InlineASMColon) &&
@@ -1393,11 +1450,12 @@ unsigned ContinuationIndenter::addTokenOnNewLine(LineState &State,
       (PreviousNonComment->isOneOf(tok::l_brace, TT_ArrayInitializerLSquare) ||
        opensProtoMessageField(*PreviousNonComment, Style))) {
     const bool IsEmptyCtorBodyAfterInitializer =
-        Style.EmptyConstructorBodyOnNewLine && Current.is(tok::r_brace) &&
-        PreviousNonComment->is(tok::l_brace) && PreviousNonComment->Previous &&
+        Style.EmptyConstructorBodyOnNewLine &&
+        PreviousNonComment->is(TT_FunctionLBrace) &&
+        PreviousNonComment->Previous &&
         PreviousNonComment->Previous->is(tok::r_brace) &&
-        PreviousNonComment->isNot(BK_BracedInit) &&
-        hasCtorInitializerBefore(PreviousNonComment->Previous);
+        PreviousNonComment->Previous->is(BK_BracedInit) &&
+        Current.is(tok::r_brace);
     CurrentState.BreakBeforeClosingBrace = !IsEmptyCtorBodyAfterInitializer;
   }
 

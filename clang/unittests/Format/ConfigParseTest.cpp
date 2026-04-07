@@ -219,9 +219,10 @@ TEST(ConfigParseTest, ParsesConfigurationBools) {
   CHECK_PARSE_BOOL(SpaceBeforeCaseColon);
   CHECK_PARSE_BOOL(SpaceBeforeCpp11BracedList);
   CHECK_PARSE_BOOL(SpaceBeforeCtorInitializerColon);
+  CHECK_PARSE_BOOL(EmptyConstructorBodyOnNewLine);
   CHECK_PARSE_BOOL(SpaceAfterCtorInitializerColon);
   CHECK_PARSE_BOOL(SpaceAfterCtorInitializerComma);
-  CHECK_PARSE_BOOL(EmptyConstructorBodyOnNewLine);
+  CHECK_PARSE_BOOL(CtorBodyOnNewLineAfterInitList);
   CHECK_PARSE_BOOL(SpaceBeforeEnumUnderlyingTypeColon);
   CHECK_PARSE_BOOL(SpaceBeforeInheritanceColon);
   CHECK_PARSE_BOOL(SpaceBeforeJsonColon);

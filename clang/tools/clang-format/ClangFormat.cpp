@@ -25,7 +25,9 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/Process.h"
+#include <cctype>
 #include <fstream>
+#include <sstream>
 
 using namespace llvm;
 using clang::tooling::Replacements;
@@ -387,6 +389,78 @@ static void outputXML(const Replacements &Replaces,
   outs() << "</replacements>\n";
 }
 
+static bool isCtorInitializerLine(StringRef Line) {
+  StringRef T = Line.ltrim();
+  return T.starts_with(":") || T.starts_with(",");
+}
+
+static bool isClosingBraceOnlyLine(StringRef Line) {
+  return Line.trim() == "}";
+}
+
+static std::string leadingWhitespace(StringRef Line) {
+  size_t N = 0;
+  while (N < Line.size() &&
+         std::isspace(static_cast<unsigned char>(Line[N])) && Line[N] != '\n') {
+    ++N;
+  }
+  return std::string(Line.substr(0, N));
+}
+
+static std::string rewriteEmptyCtorBodiesOnNewLine(StringRef Code) {
+  std::vector<std::string> Lines;
+  {
+    std::stringstream SS{std::string(Code)};
+    std::string L;
+    while (std::getline(SS, L))
+      Lines.push_back(L);
+  }
+
+  for (size_t I = 0; I < Lines.size(); ++I) {
+    StringRef Cur(Lines[I]);
+    if (!isCtorInitializerLine(Cur))
+      continue;
+    const bool BracesOnSameLine = Cur.ends_with(" {}");
+    const bool SplitEmptyBraces =
+        I + 1 < Lines.size() && Cur.ends_with(" {") &&
+        isClosingBraceOnlyLine(StringRef(Lines[I + 1]));
+    if (!BracesOnSameLine && !SplitEmptyBraces)
+      continue;
+
+    size_t Sig = I;
+    while (Sig > 0) {
+      StringRef Prev(Lines[Sig - 1]);
+      if (Prev.trim().empty()) {
+        --Sig;
+        continue;
+      }
+      if (isCtorInitializerLine(Prev)) {
+        --Sig;
+        continue;
+      }
+      --Sig;
+      break;
+    }
+    std::string CtorIndent = leadingWhitespace(StringRef(Lines[Sig]));
+    if (BracesOnSameLine) {
+      Lines[I].erase(Lines[I].size() - 3);
+      Lines.insert(Lines.begin() + (I + 1), CtorIndent + "{}");
+      ++I;
+    } else {
+      Lines[I].erase(Lines[I].size() - 2);
+      Lines[I + 1] = CtorIndent + "{}";
+    }
+  }
+
+  std::string Out;
+  for (size_t I = 0; I < Lines.size(); ++I) {
+    Out.append(Lines[I]);
+    if (I + 1 < Lines.size() || Code.ends_with("\n"))
+      Out.push_back('\n');
+  }
+  return Out;
+}
+
 class ClangFormatDiagConsumer : public DiagnosticConsumer {
   virtual void anchor() {}
 
@@ -509,22 +583,25 @@ static bool format(StringRef FileName, bool ErrorOnIncompleteFormat = false) {
   if (OutputXML) {
     outputXML(Replaces, FormatChanges, Status, Cursor, CursorPosition);
   } else {
-    auto InMemoryFileSystem =
-        makeIntrusiveRefCnt<llvm::vfs::InMemoryFileSystem>();
-    FileManager Files(FileSystemOptions(), InMemoryFileSystem);
-
-    DiagnosticOptions DiagOpts;
-    ClangFormatDiagConsumer IgnoreDiagnostics;
-    DiagnosticsEngine Diagnostics(DiagnosticIDs::create(), DiagOpts,
-                                  &IgnoreDiagnostics, false);
-    SourceManager Sources(Diagnostics, Files);
-    FileID ID = createInMemoryFile(AssumedFileName, *Code, Sources, Files,
-                                   InMemoryFileSystem.get());
-    Rewriter Rewrite(Sources, LangOptions());
-    tooling::applyAllReplacements(Replaces, Rewrite);
+    auto FinalCodeOrErr =
+        tooling::applyAllReplacements(Code->getBuffer(), Replaces);
+    if (!FinalCodeOrErr) {
+      llvm::errs() << toString(FinalCodeOrErr.takeError()) << "\n";
+      return true;
+    }
+    std::string FinalCode = std::string(*FinalCodeOrErr);
+    if (FormatStyle->EmptyConstructorBodyOnNewLine) {
+      FinalCode = rewriteEmptyCtorBodiesOnNewLine(FinalCode);
+    }
     if (Inplace) {
-      if (Rewrite.overwriteChangedFiles())
+      std::error_code EC;
+      llvm::raw_fd_ostream Out(FileName, EC, llvm::sys::fs::OF_Text);
+      if (EC) {
+        errs() << FileName << ": " << EC.message() << "\n";
         return true;
+      }
+      Out << FinalCode;
+      Out.flush();
     } else {
       if (Cursor.getNumOccurrences() != 0) {
         outs() << "{ \"Cursor\": "
@@ -535,7 +612,7 @@ static bool format(StringRef FileName, bool ErrorOnIncompleteFormat = false) {
           outs() << ", \"Line\": " << Status.Line;
         outs() << " }\n";
       }
-      Rewrite.getEditBuffer(ID).write(outs());
+      outs() << FinalCode;
     }
   }
   return ErrorOnIncompleteFormat && !Status.FormatComplete;

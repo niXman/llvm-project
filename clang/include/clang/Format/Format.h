@@ -5126,7 +5126,7 @@ struct FormatStyle {
   ///    true:                                  false:
   ///    Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
   /// \endcode
-  /// \version 22
+  /// \version 23
   bool SpaceAfterCtorInitializerColon;
 
   /// If ``false``, spaces will be removed after constructor initializer comma.
@@ -5134,7 +5134,7 @@ struct FormatStyle {
   ///    true:                                  false:
   ///    Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
   /// \endcode
-  /// \version 22
+  /// \version 23
   bool SpaceAfterCtorInitializerComma;
   /// If ``false``, spaces will be removed before enum underlying type colon.
   /// \code

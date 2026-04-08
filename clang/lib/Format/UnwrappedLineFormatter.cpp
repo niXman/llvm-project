@@ -32,6 +32,42 @@ bool isRecordLBrace(const FormatToken &Tok) {
                      TT_StructLBrace, TT_UnionLBrace);
 }
 
+/// Inline methods inside struct/class get \c TT_BlockLBrace on `{`, not
+/// \c TT_FunctionLBrace (see \c UnwrappedLineParser::parseLevel).
+static bool isInlinedMethodBlockLBrace(const AnnotatedLine &Line,
+                                       const FormatToken *LastNonComment) {
+  if (!LastNonComment || !LastNonComment->is(tok::l_brace) ||
+      LastNonComment->is(BK_BracedInit))
+    return false;
+  // Inside a record, the parser can tag a method's `{` as TT_StructLBrace /
+  // TT_ClassLBrace / TT_UnionLBrace / TT_RecordLBrace (or TT_BlockLBrace).
+  if (!LastNonComment->isOneOf(TT_BlockLBrace, TT_StructLBrace, TT_ClassLBrace,
+                               TT_UnionLBrace, TT_RecordLBrace))
+    return false;
+  if (Line.First == LastNonComment)
+    return false;
+  const FormatToken *First = Line.getFirstNonComment();
+  if (!First)
+    return false;
+  if (First->isOneOf(tok::kw_if, tok::kw_while, tok::kw_for, tok::kw_switch,
+                      tok::kw_try, tok::kw_else, tok::kw_do, tok::kw_catch,
+                      tok::kw_namespace))
+    return false;
+  const FormatToken *BeforeBrace = LastNonComment->Previous;
+  if (!BeforeBrace)
+    return false;
+  while (BeforeBrace->isOneOf(tok::kw_const, tok::kw_volatile))
+    BeforeBrace = BeforeBrace->getPreviousNonComment();
+  return BeforeBrace->is(tok::r_paren);
+}
+
+static bool isShortNonEmptyMergeFunctionBrace(const AnnotatedLine &Line,
+                                              const FormatToken *LastNonComment) {
+  return LastNonComment &&
+         (LastNonComment->is(TT_FunctionLBrace) ||
+          isInlinedMethodBlockLBrace(Line, LastNonComment));
+}
+
 /// Tracks the indent level of \c AnnotatedLines across levels.
 ///
 /// \c nextLine must be called for each \c AnnotatedLine, after which \c
@@ -219,9 +255,34 @@ public:
     if (MergedLines > 0 && Style.ColumnLimit == 0) {
       // Disallow line merging if there is a break at the start of one of the
       // input lines.
-      for (unsigned i = 0; i < MergedLines; ++i)
-        if (Next[i + 1]->First->NewlinesBefore > 0)
-          MergedLines = 0;
+      const bool SkipBreakCancel =
+          Style.AllowShortNonEmptyFunctionsOnASingleLine && MergedLines == 2 &&
+          Next + 2 < End &&
+          isShortNonEmptyMergeFunctionBrace(*Next[0], Next[0]->getLastNonComment()) &&
+          Next[0]->First != Next[0]->getLastNonComment() &&
+          Next[1]->First->isNot(tok::r_brace) && Next[2]->First->is(tok::r_brace);
+      if (!SkipBreakCancel) {
+        for (unsigned i = 0; i < MergedLines; ++i)
+          if (Next[i + 1]->First->NewlinesBefore > 0)
+            MergedLines = 0;
+      }
+    }
+    const bool AllowShortNonEmptyFunctionMerge =
+        Style.AllowShortNonEmptyFunctionsOnASingleLine && MergedLines == 2 &&
+        Next + 2 < End &&
+        isShortNonEmptyMergeFunctionBrace(*Next[0], Next[0]->getLastNonComment()) &&
+        Next[0]->First != Next[0]->getLastNonComment() &&
+        Next[1]->First->isNot(tok::r_brace) && Next[2]->First->is(tok::r_brace);
+    if (!DryRun && AllowShortNonEmptyFunctionMerge) {
+      // Joining would leave line-start breaks on the body/`}` lines; clear so
+      // mustBreakBefore() does not re-split (it also consults NewlinesBefore /
+      // HasUnescapedNewline).
+      for (unsigned i = 0; i < MergedLines; ++i) {
+        FormatToken *F = Next[i + 1]->First;
+        F->MustBreakBefore = false;
+        F->NewlinesBefore = 0;
+        F->HasUnescapedNewline = false;
+      }
     }
     if (!DryRun)
       for (unsigned i = 0; i < MergedLines; ++i)
@@ -244,7 +305,15 @@ private:
     if (TheLine->Last->is(TT_LineComment))
       return 0;
     const auto &NextLine = *I[1];
-    if (NextLine.Type == LT_Invalid || NextLine.First->MustBreakBefore)
+    if (NextLine.Type == LT_Invalid)
+      return 0;
+    const FormatToken *LastNC = TheLine->getLastNonComment();
+    const bool MaybeShortNonEmptyFnMerge =
+        Style.AllowShortNonEmptyFunctionsOnASingleLine && LastNC &&
+        NextLine.First && NextLine.First->isNot(tok::r_brace) &&
+        TheLine->First != LastNC &&
+        isShortNonEmptyMergeFunctionBrace(*TheLine, LastNC);
+    if (NextLine.First->MustBreakBefore && !MaybeShortNonEmptyFnMerge)
       return 0;
     if (TheLine->InPPDirective &&
         (!NextLine.InPPDirective || NextLine.First->HasUnescapedNewline)) {
@@ -263,12 +332,12 @@ private:
                 ? 0
                 : Limit - TheLine->Last->TotalLength;
 
-    if (TheLine->Last->is(TT_FunctionLBrace) &&
-        TheLine->First == TheLine->Last) {
+    if (TheLine->Last->is(TT_FunctionLBrace) && TheLine->First == TheLine->Last) {
       const bool EmptyFunctionBody = NextLine.First->is(tok::r_brace);
       if ((EmptyFunctionBody && !Style.BraceWrapping.SplitEmptyFunction) ||
           (!EmptyFunctionBody &&
-           Style.AllowShortBlocksOnASingleLine == FormatStyle::SBS_Always)) {
+           (Style.AllowShortBlocksOnASingleLine == FormatStyle::SBS_Always ||
+            Style.AllowShortNonEmptyFunctionsOnASingleLine))) {
         return tryMergeSimpleBlock(I, E, Limit);
       }
     }
@@ -287,7 +356,6 @@ private:
     if (PreviousLine && TheLine->Last->is(tok::l_brace) &&
         TheLine->First == TheLine->Last) {
       const bool EmptyBlock = NextLine.First->is(tok::r_brace);
-
       const FormatToken *Tok = PreviousLine->getFirstNonComment();
 
       if (Tok && Tok->getNamespaceToken()) {
@@ -435,9 +503,18 @@ private:
     // instead of TheLine->Last.
 
     // Try to merge a function block with left brace unwrapped.
-    if (LastNonComment->is(TT_FunctionLBrace) &&
+    const bool MergeShortNonEmptyFunctions =
+        Style.AllowShortNonEmptyFunctionsOnASingleLine &&
+        isShortNonEmptyMergeFunctionBrace(*TheLine, LastNonComment) &&
+        TheLine->First != LastNonComment &&
+        NextLine.First->isNot(tok::r_brace);
+    if ((LastNonComment->is(TT_FunctionLBrace) ||
+         (Style.AllowShortNonEmptyFunctionsOnASingleLine &&
+          isInlinedMethodBlockLBrace(*TheLine, LastNonComment))) &&
         TheLine->First != LastNonComment) {
-      return MergeShortFunctions ? tryMergeSimpleBlock(I, E, Limit) : 0;
+      return (MergeShortFunctions || MergeShortNonEmptyFunctions)
+                 ? tryMergeSimpleBlock(I, E, Limit)
+                 : 0;
     }
 
     // Try to merge a control statement block with left brace unwrapped.
@@ -546,6 +623,9 @@ private:
 
       unsigned MergedLines = 0;
       if (MergeShortFunctions ||
+          (Style.AllowShortNonEmptyFunctionsOnASingleLine &&
+           NextLine.First == NextLine.Last && I + 2 != E &&
+           I[2]->First->isNot(tok::r_brace)) ||
           (Style.AllowShortFunctionsOnASingleLine.Empty &&
            NextLine.First == NextLine.Last && I + 2 != E &&
            I[2]->First->is(tok::r_brace))) {
@@ -965,13 +1045,19 @@ private:
       } else if (Limit != 0 && !Line.startsWithNamespace() &&
                  !startsExternCBlock(Line)) {
         // Merge short records only when requested.
-        if (Line.Last->isOneOf(TT_EnumLBrace, TT_RecordLBrace))
+        const bool InlineMethodBraceInRecord =
+            Style.AllowShortNonEmptyFunctionsOnASingleLine &&
+            isInlinedMethodBlockLBrace(Line, Line.getLastNonComment());
+
+        if (Line.Last->isOneOf(TT_EnumLBrace, TT_RecordLBrace) &&
+            !InlineMethodBraceInRecord)
           return 0;
 
         if (Line.Last->isOneOf(TT_ClassLBrace, TT_StructLBrace,
                                TT_UnionLBrace) &&
             Line.Last != Line.First &&
-            Style.AllowShortRecordOnASingleLine != FormatStyle::SRS_Always) {
+            Style.AllowShortRecordOnASingleLine != FormatStyle::SRS_Always &&
+            !InlineMethodBraceInRecord) {
           return 0;
         }
 
@@ -980,8 +1066,17 @@ private:
           return 0;
         Limit = limitConsideringMacros(I + 2, E, Limit);
 
-        if (!nextTwoLinesFitInto(I, Limit))
+        const bool RelaxBreakCheckForShortNonEmptyFn =
+            Style.AllowShortNonEmptyFunctionsOnASingleLine &&
+            isShortNonEmptyMergeFunctionBrace(Line, Line.getLastNonComment());
+        if (RelaxBreakCheckForShortNonEmptyFn) {
+          if (I[2]->First->MustBreakBefore && I[2]->First->isNot(tok::r_brace))
+            return 0;
+          if (1 + I[1]->Last->TotalLength + 1 + I[2]->Last->TotalLength > Limit)
+            return 0;
+        } else if (!nextTwoLinesFitInto(I, Limit)) {
           return 0;
+        }
 
         // Second, check that the next line does not contain any braces - if it
         // does, readability declines when putting it into a single line.

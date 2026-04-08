@@ -950,6 +950,23 @@ struct FormatStyle {
   /// \version 3.5
   ShortFunctionStyle AllowShortFunctionsOnASingleLine;
 
+  /// If ``true``, a short function whose body is a single statement (for
+  /// example one ``return``) may be merged onto one line with the signature,
+  /// even when the input places the statement and closing brace on their own
+  /// lines. This is independent of ``AllowShortFunctionsOnASingleLine`` and
+  /// only applies to non-empty bodies.
+  /// \code
+  ///   true:
+  ///   bool empty() const { return p == q; }
+  ///
+  ///   false:
+  ///   bool empty() const {
+  ///     return p == q;
+  ///   }
+  /// \endcode
+  /// \version 20
+  bool AllowShortNonEmptyFunctionsOnASingleLine;
+
   /// Different styles for handling short if statements.
   enum ShortIfStyle : int8_t {
     /// Never put short ifs on the same line.
@@ -5939,6 +5956,8 @@ struct FormatStyle {
            AllowShortEnumsOnASingleLine == R.AllowShortEnumsOnASingleLine &&
            AllowShortFunctionsOnASingleLine ==
                R.AllowShortFunctionsOnASingleLine &&
+           AllowShortNonEmptyFunctionsOnASingleLine ==
+               R.AllowShortNonEmptyFunctionsOnASingleLine &&
            AllowShortIfStatementsOnASingleLine ==
                R.AllowShortIfStatementsOnASingleLine &&
            AllowShortLambdasOnASingleLine == R.AllowShortLambdasOnASingleLine &&

@@ -14902,6 +14902,58 @@ TEST_F(FormatTest, PullEmptyFunctionDefinitionsIntoSingleLine) {
                MergeEmptyOnly);
 }
 
+TEST_F(FormatTest, AllowShortNonEmptyFunctionsOnASingleLine) {
+  FormatStyle Style = getLLVMStyle();
+  Style.AllowShortFunctionsOnASingleLine =
+      FormatStyle::ShortFunctionStyle(); // no implicit merge
+  Style.AllowShortNonEmptyFunctionsOnASingleLine = true;
+
+  verifyFormat("bool empty() const { return m_sentinel.next == &m_sentinel; }",
+               "bool empty() const {\n"
+               "  return m_sentinel.next == &m_sentinel;\n"
+               "}",
+               Style);
+
+  verifyFormat("int f() {\n"
+               "  a();\n"
+               "  b();\n"
+               "}",
+               Style);
+
+  Style.AllowShortNonEmptyFunctionsOnASingleLine = false;
+  verifyFormat("bool empty() const {\n"
+               "  return m_sentinel.next == &m_sentinel;\n"
+               "}",
+               Style);
+
+  FormatStyle Wrapped = getLLVMStyle();
+  Wrapped.AllowShortFunctionsOnASingleLine =
+      FormatStyle::ShortFunctionStyle();
+  Wrapped.AllowShortNonEmptyFunctionsOnASingleLine = true;
+  Wrapped.BreakBeforeBraces = FormatStyle::BS_Custom;
+  Wrapped.BraceWrapping.AfterFunction = true;
+  verifyFormat("bool g() const { return x; }",
+               "bool g() const\n"
+               "{\n"
+               "  return x;\n"
+               "}",
+               Wrapped);
+
+  FormatStyle NoLimit = getLLVMStyleWithColumns(0);
+  NoLimit.AllowShortFunctionsOnASingleLine =
+      FormatStyle::ShortFunctionStyle();
+  NoLimit.AllowShortNonEmptyFunctionsOnASingleLine = true;
+  verifyFormat("struct S {\n"
+               "  char *wire() { return reinterpret_cast<char *>(this + 1); }\n"
+               "};",
+               "struct S {\n"
+               "  char *wire() {\n"
+               "    return reinterpret_cast<char *>(this + 1);\n"
+               "  }\n"
+               "};",
+               NoLimit);
+}
+
 TEST_F(FormatTest, PullInlineFunctionDefinitionsIntoSingleLine) {
   FormatStyle MergeInlineOnly = getLLVMStyle();
   MergeInlineOnly.AllowShortFunctionsOnASingleLine =
@@ -18562,6 +18614,22 @@ TEST_F(FormatTest, ConfigurableSpaceBeforeColon) {
                "}\n"
                "}",
                InvertedSpaceStyle);
+}
+
+TEST_F(FormatTest, EmptyConstructorBodyOnNewLine) {
+  FormatStyle Style = getLLVMStyleWithColumns(30);
+  Style.BreakBeforeBraces = FormatStyle::BS_Custom;
+  Style.BraceWrapping.AfterFunction = false;
+  Style.BraceWrapping.SplitEmptyFunction = true;
+  Style.AllowShortFunctionsOnASingleLine = FormatStyle::ShortFunctionStyle();
+  Style.BreakConstructorInitializers = FormatStyle::BCIS_BeforeComma;
+  Style.EmptyConstructorBodyOnNewLine = true;
+
+  verifyFormat("Foo::Foo()\n"
+               "    : aaaaaaaaaaaaaaaa(1)\n"
+               "    , bbbbbbbbbbbbbbbb(2)\n"
+               "{}",
+               Style);
 }
 
 TEST_F(FormatTest, EnumUnderlyingTypeColonSpacing) {

@@ -2143,6 +2143,25 @@ the configuration (without a prefix: ``Auto``).
 **AllowShortNamespacesOnASingleLine** (``Boolean``) :versionbadge:`clang-format 20` :ref:`¶ <AllowShortNamespacesOnASingleLine>`
   If ``true``, ``namespace a { class b; }`` can be put on a single line.
 
+.. _AllowShortNonEmptyFunctionsOnASingleLine:
+
+**AllowShortNonEmptyFunctionsOnASingleLine** (``Boolean``) :versionbadge:`clang-format 20` :ref:`¶ <AllowShortNonEmptyFunctionsOnASingleLine>`
+  If ``true``, a short function whose body is a single statement (for
+  example one ``return``) may be merged onto one line with the signature,
+  even when the input places the statement and closing brace on their own
+  lines. This is independent of ``AllowShortFunctionsOnASingleLine`` and
+  only applies to non-empty bodies.
+
+  .. code-block:: c++
+
+    true:
+    bool empty() const { return p == q; }
+
+    false:
+    bool empty() const {
+      return p == q;
+    }
+
 .. _AllowShortRecordOnASingleLine:
 
 **AllowShortRecordOnASingleLine** (``ShortRecordStyle``) :versionbadge:`clang-format 23` :ref:`¶ <AllowShortRecordOnASingleLine>`
@@ -4185,6 +4204,21 @@ the configuration (without a prefix: ``Auto``).
 
 
 
+.. _CtorBodyOnNewLineAfterInitList:
+
+**CtorBodyOnNewLineAfterInitList** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <CtorBodyOnNewLineAfterInitList>`
+  If ``true``, place constructor body opening brace on a new line when the
+  constructor has an initializer list.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo()                             Foo::Foo()
+         : a(1), b(2)               vs.        : a(1), b(2) {
+     {                                        }
+       body();                             // ...
+     }                                    }
+
 .. _DeriveLineEnding:
 
 **DeriveLineEnding** (``Boolean``) :versionbadge:`clang-format 10` :ref:`¶ <DeriveLineEnding>`
@@ -4204,6 +4238,19 @@ the configuration (without a prefix: ``Auto``).
 
 **DisableFormat** (``Boolean``) :versionbadge:`clang-format 3.7` :ref:`¶ <DisableFormat>`
   Disables formatting completely.
+
+.. _EmptyConstructorBodyOnNewLine:
+
+**EmptyConstructorBodyOnNewLine** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <EmptyConstructorBodyOnNewLine>`
+  If ``true``, the body of an empty constructor with an initializer list
+  is placed on a new line and kept as ``{}`` on that line.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo()                             Foo::Foo()
+       : a(1), b(2)                     vs.      : a(1), b(2) {}
+     {}
 
 .. _EmptyLineAfterAccessModifier:
 
@@ -6710,6 +6757,26 @@ the configuration (without a prefix: ``Auto``).
 
      true:                                  false:
      (int) i;                       vs.     (int)i;
+
+.. _SpaceAfterCtorInitializerColon:
+
+**SpaceAfterCtorInitializerColon** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <SpaceAfterCtorInitializerColon>`
+  If ``false``, spaces will be removed after constructor initializer colon.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
+
+.. _SpaceAfterCtorInitializerComma:
+
+**SpaceAfterCtorInitializerComma** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <SpaceAfterCtorInitializerComma>`
+  If ``false``, spaces will be removed after constructor initializer comma.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
 
 .. _SpaceAfterLogicalNot:
 

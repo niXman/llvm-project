@@ -2145,7 +2145,7 @@ the configuration (without a prefix: ``Auto``).
 
 .. _AllowShortNonEmptyFunctionsOnASingleLine:
 
-**AllowShortNonEmptyFunctionsOnASingleLine** (``Boolean``) :versionbadge:`clang-format 20` :ref:`¶ <AllowShortNonEmptyFunctionsOnASingleLine>`
+**AllowShortNonEmptyFunctionsOnASingleLine** (``Boolean``) :versionbadge:`clang-format 23` :ref:`¶ <AllowShortNonEmptyFunctionsOnASingleLine>`
   If ``true``, a short function whose body is a single statement (for
   example one ``return``) may be merged onto one line with the signature,
   even when the input places the statement and closing brace on their own

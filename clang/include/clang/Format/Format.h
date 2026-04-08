@@ -964,7 +964,7 @@ struct FormatStyle {
   ///     return p == q;
   ///   }
   /// \endcode
-  /// \version 20
+  /// \version 23
   bool AllowShortNonEmptyFunctionsOnASingleLine;
 
   /// Different styles for handling short if statements.

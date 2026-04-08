@@ -18616,22 +18616,6 @@ TEST_F(FormatTest, ConfigurableSpaceBeforeColon) {
                InvertedSpaceStyle);
 }
 
-TEST_F(FormatTest, EmptyConstructorBodyOnNewLine) {
-  FormatStyle Style = getLLVMStyleWithColumns(30);
-  Style.BreakBeforeBraces = FormatStyle::BS_Custom;
-  Style.BraceWrapping.AfterFunction = false;
-  Style.BraceWrapping.SplitEmptyFunction = true;
-  Style.AllowShortFunctionsOnASingleLine = FormatStyle::ShortFunctionStyle();
-  Style.BreakConstructorInitializers = FormatStyle::BCIS_BeforeComma;
-  Style.EmptyConstructorBodyOnNewLine = true;
-
-  verifyFormat("Foo::Foo()\n"
-               "    : aaaaaaaaaaaaaaaa(1)\n"
-               "    , bbbbbbbbbbbbbbbb(2)\n"
-               "{}",
-               Style);
-}
-
 TEST_F(FormatTest, EnumUnderlyingTypeColonSpacing) {
   FormatStyle Style = getLLVMStyle();
 

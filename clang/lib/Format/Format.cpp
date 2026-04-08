@@ -1384,6 +1384,10 @@ template <> struct MappingTraits<FormatStyle> {
     IO.mapOptional("SortJavaStaticImport", Style.SortJavaStaticImport);
     IO.mapOptional("SortUsingDeclarations", Style.SortUsingDeclarations);
     IO.mapOptional("SpaceAfterCStyleCast", Style.SpaceAfterCStyleCast);
+    IO.mapOptional("SpaceAfterCtorInitializerColon",
+                   Style.SpaceAfterCtorInitializerColon);
+    IO.mapOptional("SpaceAfterCtorInitializerComma",
+                   Style.SpaceAfterCtorInitializerComma);
     IO.mapOptional("SpaceAfterLogicalNot", Style.SpaceAfterLogicalNot);
     IO.mapOptional("SpaceAfterOperatorKeyword",
                    Style.SpaceAfterOperatorKeyword);
@@ -1398,10 +1402,6 @@ template <> struct MappingTraits<FormatStyle> {
                    Style.SpaceBeforeCpp11BracedList);
     IO.mapOptional("SpaceBeforeCtorInitializerColon",
                    Style.SpaceBeforeCtorInitializerColon);
-    IO.mapOptional("SpaceAfterCtorInitializerColon",
-                   Style.SpaceAfterCtorInitializerColon);
-    IO.mapOptional("SpaceAfterCtorInitializerComma",
-                   Style.SpaceAfterCtorInitializerComma);
     IO.mapOptional("SpaceBeforeEnumUnderlyingTypeColon",
                    Style.SpaceBeforeEnumUnderlyingTypeColon);
     IO.mapOptional("SpaceBeforeInheritanceColon",
@@ -1916,6 +1916,8 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.SortJavaStaticImport = FormatStyle::SJSIO_Before;
   LLVMStyle.SortUsingDeclarations = FormatStyle::SUD_LexicographicNumeric;
   LLVMStyle.SpaceAfterCStyleCast = false;
+  LLVMStyle.SpaceAfterCtorInitializerColon = true;
+  LLVMStyle.SpaceAfterCtorInitializerComma = true;
   LLVMStyle.SpaceAfterLogicalNot = false;
   LLVMStyle.SpaceAfterOperatorKeyword = false;
   LLVMStyle.SpaceAfterTemplateKeyword = true;
@@ -1924,8 +1926,6 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.SpaceBeforeCaseColon = false;
   LLVMStyle.SpaceBeforeCpp11BracedList = false;
   LLVMStyle.SpaceBeforeCtorInitializerColon = true;
-  LLVMStyle.SpaceAfterCtorInitializerColon = true;
-  LLVMStyle.SpaceAfterCtorInitializerComma = true;
   LLVMStyle.SpaceBeforeEnumUnderlyingTypeColon = true;
   LLVMStyle.SpaceBeforeInheritanceColon = true;
   LLVMStyle.SpaceBeforeJsonColon = false;

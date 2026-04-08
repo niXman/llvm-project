@@ -5537,11 +5537,8 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
       Left.isOneOf(TT_TrailingReturnArrow, TT_LambdaArrow)) {
     return true;
   }
-  if (Left.is(tok::comma) && Left.is(TT_CtorInitializerComma) &&
-      Right.isNot(TT_OverloadedOperatorLParen) &&
-      (Left.Children.empty() || !Left.MacroParent)) {
+  if (Left.is(TT_CtorInitializerComma))
     return Style.SpaceAfterCtorInitializerComma;
-  }
   if (Left.is(tok::comma) && Right.isNot(TT_OverloadedOperatorLParen) &&
       // In an unexpanded macro call we only find the parentheses and commas
       // in a line; the commas and closing parenthesis do not require a space.

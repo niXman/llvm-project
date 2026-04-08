@@ -5539,6 +5539,8 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
   }
   if (Left.is(TT_CtorInitializerComma))
     return Style.SpaceAfterCtorInitializerComma;
+  if (Left.is(TT_CtorInitializerColon))
+    return Style.SpaceAfterCtorInitializerColon;
   if (Left.is(tok::comma) && Right.isNot(TT_OverloadedOperatorLParen) &&
       // In an unexpanded macro call we only find the parentheses and commas
       // in a line; the commas and closing parenthesis do not require a space.
@@ -5551,8 +5553,6 @@ bool TokenAnnotator::spaceRequiredBefore(const AnnotatedLine &Line,
     return true;
   if (Right.is(TT_CtorInitializerColon))
     return Style.SpaceBeforeCtorInitializerColon;
-  if (Right.Previous->is(TT_CtorInitializerColon))
-    return Style.SpaceAfterCtorInitializerColon;
   if (Right.is(TT_InheritanceColon) && !Style.SpaceBeforeInheritanceColon)
     return false;
   if (Right.is(TT_EnumUnderlyingTypeColon) &&

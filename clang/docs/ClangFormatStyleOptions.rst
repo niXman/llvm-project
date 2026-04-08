@@ -4205,6 +4205,19 @@ the configuration (without a prefix: ``Auto``).
 **DisableFormat** (``Boolean``) :versionbadge:`clang-format 3.7` :ref:`¶ <DisableFormat>`
   Disables formatting completely.
 
+.. _EmptyConstructorBodyOnNewLine:
+
+**EmptyConstructorBodyOnNewLine** (``Boolean``) :versionbadge:`clang-format 23` :ref:`¶ <EmptyConstructorBodyOnNewLine>`
+  If ``true``, the body of an empty constructor with an initializer list
+  is placed on a new line and kept as ``{}`` on that line.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo()                             Foo::Foo()
+       : a(1), b(2)                     vs.      : a(1), b(2) {}
+     {}
+
 .. _EmptyLineAfterAccessModifier:
 
 **EmptyLineAfterAccessModifier** (``EmptyLineAfterAccessModifierStyle``) :versionbadge:`clang-format 13` :ref:`¶ <EmptyLineAfterAccessModifier>`
@@ -6711,6 +6724,26 @@ the configuration (without a prefix: ``Auto``).
      true:                                  false:
      (int) i;                       vs.     (int)i;
 
+.. _SpaceAfterCtorInitializerColon:
+
+**SpaceAfterCtorInitializerColon** (``Boolean``) :versionbadge:`clang-format 23` :ref:`¶ <SpaceAfterCtorInitializerColon>`
+  If ``false``, spaces will be removed after constructor initializer colon.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
+
+.. _SpaceAfterCtorInitializerComma:
+
+**SpaceAfterCtorInitializerComma** (``Boolean``) :versionbadge:`clang-format 23` :ref:`¶ <SpaceAfterCtorInitializerComma>`
+  If ``false``, spaces will be removed after constructor initializer comma.
+
+  .. code-block:: c++
+
+     true:                                  false:
+     Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
+
 .. _SpaceAfterLogicalNot:
 
 **SpaceAfterLogicalNot** (``Boolean``) :versionbadge:`clang-format 9` :ref:`¶ <SpaceAfterLogicalNot>`
@@ -6850,26 +6883,6 @@ the configuration (without a prefix: ``Auto``).
 
      true:                                  false:
      class Foo : Bar {}             vs.     class Foo: Bar {}
-
-.. _SpaceAfterCtorInitializerColon:
-
-**SpaceAfterCtorInitializerColon** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <SpaceAfterCtorInitializerColon>`
-  If ``false``, spaces will be removed after constructor initializer colon.
-
-  .. code-block:: c++
-
-     true:                                  false:
-     Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
-
-.. _SpaceAfterCtorInitializerComma:
-
-**SpaceAfterCtorInitializerComma** (``Boolean``) :versionbadge:`clang-format 22` :ref:`¶ <SpaceAfterCtorInitializerComma>`
-  If ``false``, spaces will be removed after constructor initializer comma.
-
-  .. code-block:: c++
-
-     true:                                  false:
-     Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
 
 .. _SpaceBeforeJsonColon:
 

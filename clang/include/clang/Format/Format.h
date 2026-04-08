@@ -2940,6 +2940,30 @@ struct FormatStyle {
   /// \version 3.7
   bool DisableFormat;
 
+  /// If ``true``, place constructor body opening brace on a new line when the
+  /// constructor has an initializer list.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo()                             Foo::Foo()
+  ///        : a(1), b(2)               vs.        : a(1), b(2) {
+  ///    {                                        }
+  ///      body();                             // ...
+  ///    }                                    }
+  /// \endcode
+  /// \version 23
+  bool CtorBodyOnNewLineAfterInitList;
+
+  /// If ``true``, the body of an empty constructor with an initializer list
+  /// is placed on a new line and kept as ``{}`` on that line.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo()                             Foo::Foo()
+  ///      : a(1), b(2)                     vs.      : a(1), b(2) {}
+  ///    {}
+  /// \endcode
+  /// \version 23
+  bool EmptyConstructorBodyOnNewLine;
+
   /// Different styles for empty line after access modifiers.
   /// ``EmptyLineBeforeAccessModifier`` configuration handles the number of
   /// empty lines between two access modifiers.
@@ -5024,6 +5048,22 @@ struct FormatStyle {
   /// \version 3.5
   bool SpaceAfterCStyleCast;
 
+  /// If ``false``, spaces will be removed after constructor initializer colon.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
+  /// \endcode
+  /// \version 23
+  bool SpaceAfterCtorInitializerColon;
+
+  /// If ``false``, spaces will be removed after constructor initializer comma.
+  /// \code
+  ///    true:                                  false:
+  ///    Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
+  /// \endcode
+  /// \version 23
+  bool SpaceAfterCtorInitializerComma;
+
   /// If ``true``, a space is inserted after the logical not operator (``!``).
   /// \code
   ///    true:                                  false:
@@ -5120,46 +5160,6 @@ struct FormatStyle {
   /// \endcode
   /// \version 7
   bool SpaceBeforeCtorInitializerColon;
-
-  /// If ``false``, spaces will be removed after constructor initializer colon.
-  /// \code
-  ///    true:                                  false:
-  ///    Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
-  /// \endcode
-  /// \version 22
-  bool SpaceAfterCtorInitializerColon;
-
-  /// If ``false``, spaces will be removed after constructor initializer comma.
-  /// \code
-  ///    true:                                  false:
-  ///    Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
-  /// \endcode
-  /// \version 22
-  bool SpaceAfterCtorInitializerComma;
-
-  /// If ``true``, the body of an empty constructor with an initializer list
-  /// is placed on a new line and kept as ``{}`` on that line.
-  /// \code
-  ///    true:                                  false:
-  ///    Foo::Foo()                             Foo::Foo()
-  ///      : a(1), b(2)                     vs.      : a(1), b(2) {}
-  ///    {}
-  /// \endcode
-  /// \version 22
-  bool EmptyConstructorBodyOnNewLine;
-
-  /// If ``true``, place constructor body opening brace on a new line when the
-  /// constructor has an initializer list.
-  /// \code
-  ///    true:                                  false:
-  ///    Foo::Foo()                             Foo::Foo()
-  ///        : a(1), b(2)               vs.        : a(1), b(2) {
-  ///    {                                        }
-  ///      body();                             // ...
-  ///    }                                    }
-  /// \endcode
-  /// \version 22
-  bool CtorBodyOnNewLineAfterInitList;
 
   /// If ``false``, spaces will be removed before enum underlying type colon.
   /// \code
@@ -6033,6 +6033,10 @@ struct FormatStyle {
            Cpp11BracedListStyle == R.Cpp11BracedListStyle &&
            DerivePointerAlignment == R.DerivePointerAlignment &&
            DisableFormat == R.DisableFormat &&
+           CtorBodyOnNewLineAfterInitList ==
+               R.CtorBodyOnNewLineAfterInitList &&
+           EmptyConstructorBodyOnNewLine ==
+               R.EmptyConstructorBodyOnNewLine &&
            EmptyLineAfterAccessModifier == R.EmptyLineAfterAccessModifier &&
            EmptyLineBeforeAccessModifier == R.EmptyLineBeforeAccessModifier &&
            EnumTrailingComma == R.EnumTrailingComma &&
@@ -6116,6 +6120,10 @@ struct FormatStyle {
            SortIncludes == R.SortIncludes &&
            SortJavaStaticImport == R.SortJavaStaticImport &&
            SpaceAfterCStyleCast == R.SpaceAfterCStyleCast &&
+           SpaceAfterCtorInitializerColon ==
+               R.SpaceAfterCtorInitializerColon &&
+           SpaceAfterCtorInitializerComma ==
+               R.SpaceAfterCtorInitializerComma &&
            SpaceAfterLogicalNot == R.SpaceAfterLogicalNot &&
            SpaceAfterOperatorKeyword == R.SpaceAfterOperatorKeyword &&
            SpaceAfterTemplateKeyword == R.SpaceAfterTemplateKeyword &&
@@ -6124,14 +6132,6 @@ struct FormatStyle {
            SpaceBeforeCpp11BracedList == R.SpaceBeforeCpp11BracedList &&
            SpaceBeforeCtorInitializerColon ==
                R.SpaceBeforeCtorInitializerColon &&
-           SpaceAfterCtorInitializerColon ==
-               R.SpaceAfterCtorInitializerColon &&
-           SpaceAfterCtorInitializerComma ==
-               R.SpaceAfterCtorInitializerComma &&
-           EmptyConstructorBodyOnNewLine ==
-               R.EmptyConstructorBodyOnNewLine &&
-           CtorBodyOnNewLineAfterInitList ==
-               R.CtorBodyOnNewLineAfterInitList &&
            SpaceBeforeInheritanceColon == R.SpaceBeforeInheritanceColon &&
            SpaceBeforeJsonColon == R.SpaceBeforeJsonColon &&
            SpaceBeforeParens == R.SpaceBeforeParens &&

@@ -5027,7 +5027,7 @@ struct FormatStyle {
   /// If ``false``, spaces will be removed after constructor initializer colon.
   /// \code
   ///    true:                                  false:
-  ///    Foo::Foo() : a(a) {}                   Foo::Foo() :a(a) {}
+  ///    Foo::Foo() : a(a) {}           vs.     Foo::Foo() :a(a) {}
   /// \endcode
   /// \version 23
   bool SpaceAfterCtorInitializerColon;
@@ -5035,7 +5035,7 @@ struct FormatStyle {
   /// If ``false``, spaces will be removed after constructor initializer comma.
   /// \code
   ///    true:                                  false:
-  ///    Foo::Foo() : a(a), b(b) {}             Foo::Foo() : a(a),b(b) {}
+  ///    Foo::Foo() : a(a), b(b) {}     vs.     Foo::Foo() : a(a),b(b) {}
   /// \endcode
   /// \version 23
   bool SpaceAfterCtorInitializerComma;
